@@ -45,7 +45,7 @@ class LogRegistrationFunction extends LambdaHandler[LogCreationEvent, Unit] with
 
   def subscribe(destinationFunc: String, accountId: String, logGroup: String): Unit = {
     val destinationFuncArn = s"arn:aws:lambda:$region:$accountId:function:$destinationFunc"
-    if(logGroup == s"$logGroupPrefix/$destinationFunc") {
+    if(logGroup == s"$logGroupPrefix/$destinationFunc" || !logGroup.startsWith(logGroupPrefix)) {
       log.info(s"""Ignoring the destination function $destinationFuncArn.""")
     } else {
       logic.updateSubscriptionFilter(logGroup, destinationFuncArn)
