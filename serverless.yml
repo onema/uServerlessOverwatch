@@ -1,0 +1,61 @@
+#
+# This file is part of the ONEMA onema Package.
+# For the full copyright and license information,
+# please view the LICENSE file that was distributed
+# with this source code.
+#
+# copyright (c) 2018, Juan Manuel Torres (http://onema.io)
+#
+# @author Juan Manuel Torres <software@onema.io>
+#
+service: overwatch
+
+provider:
+  name: aws
+  runtime: java8
+  profile: ${opt:profile, 'default'}
+  timeout: 30
+  versionFunctions: false
+  memorySize: 512
+  stage: dev
+  region: us-east-1
+
+  # you can add statements to the Lambda function's IAM Role here
+  iamRoleStatements: ${file(infrastructure/global-values.yml):iamRoleStatements}
+
+  # Service wide environment variables
+  environment:
+    LOG_LEVEL: DEBUG
+    STAGE_NAME: ${self:custom.stageName}
+
+    # The error topic is part of the bootstrap infrastructure for uServerless
+    SNS_ERROR_TOPIC: ${file(infrastructure/global-values.yml):environment.SNS_ERROR_TOPIC}
+
+# Custom values. These can be referenced in the Cloud Formation template
+custom: ${file(infrastructure/global-values.yml):custom}
+
+package:
+  artifact: target/scala-2.12/app.jar
+
+functions:
+
+  # functions
+  log-registration:
+    handler: io.onema.userverless.overwatch.logs.LogRegistrationFunction::lambdaHandler
+    onError: ${file(infrastructure/global-values.yml):deadLetterQueue}
+    events: ${file(infrastructure/global-values.yml):loggroupEvents}
+    environment:
+      LOG_RETENTION_DAYS: 14
+      DESTINATION_FUNCTION: "${self:service}-${self:provider.stage}-log-parser"
+      LOG_GROUP_PREFIX: "/aws/lambda"
+
+  log-parser:
+    handler: io.onema.userverless.overwatch.logs.ParserFunction::lambdaHandler
+    onError: ${file(infrastructure/global-values.yml):deadLetterQueue}
+    description: parses logs for metrics errors and more
+
+# you can add CloudFormation resource templates here
+resources:
+  Parameters: ${file(infrastructure/bootstrap_cfn.yml):Parameters}
+  Resources: ${file(infrastructure/bootstrap_cfn.yml):Resources}
+  Outputs: ${file(infrastructure/bootstrap_cfn.yml):Outputs}
