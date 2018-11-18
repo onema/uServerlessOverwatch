@@ -1,0 +1,115 @@
+# Bootstrap infrastructure for uServerless
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Template to create basic infrastructure for uServerless
+
+Parameters:
+  StageName:
+    Type: String
+    Description: The Stage or Environment name
+    Default: "${self:provider.stage}"
+
+Resources:
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName:
+        Fn::Join: ["-", [Ref: StageName, "dead-letter-queue"]]
+
+  SNSErrorTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Join: ["-", [Ref: StageName, "error-topic"]]
+
+  CloudTrailS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - ExpirationInDays: 30
+            Id: delete-after-30-days
+            Status: Enabled
+
+  CloudTrailBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: CloudTrailS3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AWSCloudTrailAclCheck
+            Effect: Allow
+            Principal:
+              Service: "cloudtrail.amazonaws.com"
+            Action: s3:GetBucketAcl
+            Resource:
+              Fn::Join : ["", ["arn:aws:s3:::", Ref: CloudTrailS3Bucket]]
+          - Sid: AWSCloudTrailWrite
+            Effect: Allow
+            Principal:
+              Service: "cloudtrail.amazonaws.com"
+            Action: s3:PutObject
+            Resource:
+              Fn::Join: ["", ["arn:aws:s3:::", Ref: CloudTrailS3Bucket, "/AWSLogs/", Ref: "AWS::AccountId", "/*"]]
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+
+  CloudTrailCloudWatchLogs:
+    DependsOn:
+      - CloudTrailBucketPolicy
+    Type: AWS::CloudTrail::Trail
+    Properties:
+      TrailName: uServerlessLogsTrail
+      S3BucketName:
+        Ref: CloudTrailS3Bucket
+      IsLogging: true
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        "Ref": LogDashparserLambdaFunction
+      Principal:
+        Fn::Join: [".", [logs, Ref: AWS::Region, amazonaws, com]]
+
+Outputs:
+  uServerlessCloudTrail:
+    Description: The cloud trail created to respond to log stream creation
+    Value:
+      Ref: CloudTrailCloudWatchLogs
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "cloud-trail-cloudwatch-logs"]]
+
+  SnsErrorTopicArn:
+    Description: The ARN of the Error Topic
+    Value:
+      Ref: SNSErrorTopic
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "error-topic-arn"]]
+  SnsErrorTopicName:
+    Description: The Name of the Error Topic
+    Value:
+      Fn::GetAtt: [SNSErrorTopic, "TopicName"]
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "error-topic-name"]]
+  DeadLetterQueueURL:
+    Description: URL of the dead letter queue
+    Value:
+      Ref: DeadLetterQueue
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "dead-letter-queue-url"]]
+  DeadLetterQueueARN:
+    Description: ARN of the dead letter queue
+    Value:
+      Fn::GetAtt: [DeadLetterQueue, Arn]
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "dead-letter-queue-arn"]]

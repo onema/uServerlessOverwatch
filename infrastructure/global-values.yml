@@ -1,0 +1,44 @@
+# =======================================================================
+# Permissions
+# =======================================================================
+iamRoleStatements:
+  - Effect: Allow
+    Action:
+      - sqs:SendMessageBatch
+      - sqs:SendMessage
+    Resource:
+      - Fn::GetAtt: [DeadLetterQueue, Arn]
+  - Effect: Allow
+    Action: cloudwatch:PutMetricData
+    Resource: "*"
+  - Effect: Allow
+    Action:
+      - logs:PutRetentionPolicy
+      - logs:PutSubscriptionFilter
+    Resource: "*"
+
+# =======================================================================
+# Environment Variables
+# =======================================================================
+environment:
+  SNS_ERROR_TOPIC:
+    Ref: SNSErrorTopic
+
+loggroupEvents:
+  - cloudwatchEvent:
+      event:
+        source:
+          - aws.logs
+        detail-type:
+          - AWS API Call via CloudTrail
+        detail:
+          eventSource:
+            - logs.amazonaws.com
+          eventName:
+            - CreateLogGroup
+
+custom:
+  stageName: ${opt:stage, self:provider.stage}
+
+deadLetterQueue:
+  Fn::ImportValue: "${self:custom.stageName}-dead-letter-queue-arn"
