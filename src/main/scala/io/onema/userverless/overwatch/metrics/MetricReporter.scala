@@ -26,28 +26,47 @@ class MetricReporter(val client: AmazonCloudWatch) {
   val log = Logger(classOf[MetricReporter])
 
   //--- Methods ---
-  def submit(logMessage: LogMessage): Unit = {
-    Try(parseMetric(logMessage.message)) match {
-      case Success(metric) => putMetric(logMessage, metric)
-      case Failure(ex) =>
-        // Log the error, but don't fail as we may have other metrics to put
-        log.error(ex.getMessage)
+  def submit(namespace: String, logMessages: Seq[LogMessage]): Unit = {
+    if(namespace == "APP_NAME_IS_UNDEFINED") {
+      log.warn(s"""NAMESPACE "$namespace" IS NOT VALID AND WILL NOT BE REPORTED!""")
+      return
     }
+    val parsedMetrics = logMessages.map(m => {
+      Try(parseMetric(m.message)) match {
+        case Success(metric) => Some(metric)
+        case Failure(ex) =>
+          // Log the error, but don't fail
+          log.error(ex.getMessage)
+          None
+      }
+    }).filter(_.isDefined).flatten
+    putMetrics(namespace, parsedMetrics)
   }
 
-  def putMetric(logMessage: LogMessage, metric: Metric): Unit = {
-    log.debug(s"""About to put metric "$metric"""")
-    val dimensions = metric.tagMap.map {case (k, v) => new Dimension().withName(k).withValue(v)}.toList.asJava
-    val namespace = toPascalCase(logMessage.function)
-    val datum = new MetricDatum()
-      .withMetricName(metric.name)
-      .withUnit(metric.unit)
-      .withValue(metric.value)
-      .withDimensions(dimensions)
-    val request = new PutMetricDataRequest()
-      .withNamespace(s"$namespace")
-      .withMetricData(datum)
-    client.putMetricData(request)
+  def putMetrics(namespace: String, metrics: Seq[Metric]): Unit = {
+    val ns = toPascalCase(namespace)
+
+    // Create metric datum for each metric we are going to report, and batch it in groups of 20
+    val metricDatum: Iterator[Seq[MetricDatum]] = metrics.map(metric => {
+      log.debug(s"""About to put metric "$metric"""")
+      val dimensions = metric.tagMap.map {
+        case (k, v) => new Dimension().withName(k).withValue(v)
+      }.toList.asJava
+      new MetricDatum()
+        .withMetricName(metric.name)
+        .withUnit(metric.unit)
+        .withValue(metric.value)
+        .withDimensions(dimensions)
+    }).grouped(20)
+
+    // for each batch create and submit a new request
+    metricDatum.foreach(x => {
+      val request = new PutMetricDataRequest()
+        .withNamespace(s"$ns")
+      log.debug(s"BATCHED ${x.length} metrics for the namespace $ns")
+      x.foreach(request.withMetricData(_))
+      client.putMetricData(request)
+    })
   }
 }
 

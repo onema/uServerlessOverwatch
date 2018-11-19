@@ -45,6 +45,8 @@ class LogRegistrationFunction extends LambdaHandler[LogCreationEvent, Unit] with
 
   def subscribe(destinationFunc: String, accountId: String, logGroup: String): Unit = {
     val destinationFuncArn = s"arn:aws:lambda:$region:$accountId:function:$destinationFunc"
+
+    // Ignore the destination function itself to avoid invocation loops and logs that do not use the configured prefix
     if(logGroup == s"$logGroupPrefix/$destinationFunc" || !logGroup.startsWith(logGroupPrefix)) {
       log.info(s"""Ignoring the destination function $destinationFuncArn.""")
     } else {

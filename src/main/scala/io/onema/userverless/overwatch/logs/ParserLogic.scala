@@ -17,7 +17,7 @@ import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
 import com.typesafe.scalalogging.Logger
 import io.onema.json.Extensions._
-import io.onema.userverless.model.Log.{LogMessage, Rename}
+import io.onema.userverless.model.Log.{LogErrorMessage, LogMessage, Rename}
 
 object ParserLogic {
 
@@ -34,8 +34,6 @@ object ParserLogic {
     log.debug(s"Decoding errors $errors")
     log.debug(s"Decoding metrics $metrics")
     log.debug(s"Decoding all others $logs")
-
-    // for each of the parsed metrics and errors, report them!
     ParsedResults(errors, metrics, logs)
   }
 
@@ -56,11 +54,12 @@ object ParserLogic {
     Base64.getEncoder.encodeToString(compressed)
   }
 
-  def errors()(implicit messages: Seq[String]): Seq[String] = {
+  def errors()(implicit messages: Seq[String]): Seq[LogErrorMessage] = {
     messages.filter(_.startsWith(errorPrefix))
       .map(x => {
         x.stripPrefix(errorPrefix)
           .stripSuffix("\n")
+          .jsonDecode[LogErrorMessage](Rename.errorMessage)
       })
   }
 
@@ -93,5 +92,5 @@ object ParserLogic {
     logEvents: List[LogEvents]
   )
 
-  case class ParsedResults(errors: Seq[String], metrics: Seq[LogMessage], logMessages: Seq[LogMessage])
+  case class ParsedResults(errors: Seq[LogErrorMessage], metrics: Seq[LogMessage], logMessages: Seq[LogMessage])
 }

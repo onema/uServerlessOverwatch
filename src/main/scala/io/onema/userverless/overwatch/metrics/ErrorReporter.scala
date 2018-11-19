@@ -12,10 +12,21 @@
 package io.onema.userverless.overwatch.metrics
 
 import com.amazonaws.services.sns.AmazonSNS
+import com.typesafe.scalalogging.Logger
+import io.onema.userverless.model.Log.{LogErrorMessage, Rename}
+import io.onema.json.Extensions._
 
 class ErrorReporter(val snsClient: AmazonSNS, val snsErrorTopic: Option[String]) {
+  //--- Fields ---
+  val log = Logger(classOf[ErrorReporter])
 
-  def submit(message: String): Unit = {
-    snsErrorTopic.foreach(snsClient.publish(_, message))
+  //--- Methods ---
+  def submit(error: LogErrorMessage): Unit = {
+    if(error.reportException) {
+      log.debug(s"""Publishing error error "${error.message}" """)
+      snsErrorTopic.foreach(snsClient.publish(_, error.asJson(Rename.errorMessage)))
+    } else {
+      log.info(s"""SKIPPING Error error "${error.message}" as it has been marked as ignored""")
+    }
   }
 }

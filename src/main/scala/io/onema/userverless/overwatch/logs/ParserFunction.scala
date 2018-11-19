@@ -18,6 +18,7 @@ import com.amazonaws.services.lambda.runtime.events.CloudWatchLogsEvent
 import com.amazonaws.services.sns.AmazonSNSClientBuilder
 import io.onema.userverless.configuration.lambda.EnvLambdaConfiguration
 import io.onema.userverless.function.LambdaHandler
+import io.onema.userverless.monitoring.LogMetrics._
 import io.onema.userverless.overwatch.metrics.{ErrorReporter, MetricReporter}
 
 
@@ -30,13 +31,19 @@ class ParserFunction extends LambdaHandler[CloudWatchLogsEvent, Unit] with EnvLa
 
   //--- Methods ---
   override def execute(event: CloudWatchLogsEvent, context: Context): Unit = {
-    val base64Event = event.getAwsLogs.getData
-    val parsedResults = ParserLogic.parse(base64Event)
+    val parsedResults = time("ParseLogs") {
+      val base64Event = event.getAwsLogs.getData
+      ParserLogic.parse(base64Event)
+    }
 
-    log.debug(s"Submitting ${parsedResults.metrics.length} metrics")
-    parsedResults.metrics.foreach(metricReporter.submit)
+    time("MetricsReport") {
+      log.debug(s"Submitting ${parsedResults.metrics.length} metrics")
+      parsedResults.metrics.groupBy(_.appName).foreach { case (a, m) => metricReporter.submit(a, m)}
+    }
 
-    log.debug(s"Submitting ${parsedResults.errors.length} errors")
-    parsedResults.errors.foreach(errorReporter.submit)
+    time("ErrorReport") {
+      log.debug(s"Submitting ${parsedResults.errors.length} errors")
+      parsedResults.errors.foreach(errorReporter.submit)
+    }
   }
 }

@@ -16,13 +16,21 @@ iamRoleStatements:
       - logs:PutRetentionPolicy
       - logs:PutSubscriptionFilter
     Resource: "*"
+  - Effect: Allow
+    Action:
+      - sns:Publish
+    Resource:
+      Ref: SNSErrorTopic
 
 # =======================================================================
 # Environment Variables
 # =======================================================================
 environment:
+  LOG_LEVEL: DEBUG
+  STAGE_NAME: ${self:custom.stageName}
   SNS_ERROR_TOPIC:
     Ref: SNSErrorTopic
+  APP_NAME: ${self:service}
 
 loggroupEvents:
   - cloudwatchEvent:

@@ -24,12 +24,7 @@ provider:
   iamRoleStatements: ${file(infrastructure/global-values.yml):iamRoleStatements}
 
   # Service wide environment variables
-  environment:
-    LOG_LEVEL: DEBUG
-    STAGE_NAME: ${self:custom.stageName}
-
-    # The error topic is part of the bootstrap infrastructure for uServerless
-    SNS_ERROR_TOPIC: ${file(infrastructure/global-values.yml):environment.SNS_ERROR_TOPIC}
+  environment: ${file(infrastructure/global-values.yml):environment}
 
 # Custom values. These can be referenced in the Cloud Formation template
 custom: ${file(infrastructure/global-values.yml):custom}
