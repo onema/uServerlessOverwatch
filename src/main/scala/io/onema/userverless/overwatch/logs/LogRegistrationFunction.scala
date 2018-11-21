@@ -35,12 +35,18 @@ class LogRegistrationFunction extends LambdaHandler[LogCreationEvent, Unit] with
   override def execute(event: LogCreationEvent, context: Context): Unit = {
 
     // Update retention policy of the newly created log group
-    val logGroup = event.detail.requestParameters.logGroupName
-    logic.updateRetentionPolicy(logGroup, retentionTime)
+    val requestParams = Option(event.detail.requestParameters)
+    requestParams match {
+      case Some(rp) =>
+        val logGroup = rp.logGroupName
+        logic.updateRetentionPolicy(logGroup, retentionTime)
 
-    // Get own self log group to avoid self registration
-    val accoutnId = context.accountId.getOrElse("")
-    destinationFunc.foreach(x => subscribe(x, accoutnId, logGroup))
+        // Get own self log group to avoid self registration
+        val accountId = context.accountId.getOrElse("")
+        destinationFunc.foreach(x => subscribe(x, accountId, logGroup))
+      case None =>
+        log.warn(s"Registration was not successful as the `detail.requestParameters` is null. Message will be ignored.")
+    }
   }
 
   def subscribe(destinationFunc: String, accountId: String, logGroup: String): Unit = {
