@@ -21,6 +21,10 @@ iamRoleStatements:
       - sns:Publish
     Resource:
       Ref: SNSErrorTopic
+  - Effect: Allow
+    Action:
+      - lambda:UpdateFunctionConfiguration
+    Resource: "*"
 
 # =======================================================================
 # Environment Variables

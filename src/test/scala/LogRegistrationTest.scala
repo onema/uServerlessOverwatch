@@ -30,7 +30,7 @@ class LogRegistrationTest extends FlatSpec with Matchers {
 
     // Assert
     val detail = response.detail
-    val groupName = detail.requestParameters.logGroupName
+    val groupName = detail.requestParameters.get.logGroupName
     groupName should be("/aws/lambda/echoapi")
 
   }
