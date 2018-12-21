@@ -5,15 +5,15 @@ lazy val root = (project in file("."))
 
     name := "userverless-overwatch",
 
-    version := "0.1.0",
+    version := "0.2.0",
 
     scalaVersion := "2.12.7",
 
     libraryDependencies ++= {
-      val awsSdkVersion = "1.11.451"
+      val awsSdkVersion = "1.11.473"
       Seq(
         // Serverless Base!
-        "io.onema"                  % "userverless-core_2.12"      % "0.1.0",
+        "io.onema"                  % "userverless-core_2.12"      % "0.1.1",
         "com.amazonaws"             % "aws-java-sdk-logs"          % awsSdkVersion,
         "com.amazonaws"             % "aws-java-sdk-cloudwatch"    % awsSdkVersion,
         "com.amazonaws"             % "aws-java-sdk-sns"           % awsSdkVersion,
