@@ -8,7 +8,7 @@ Parameters:
   StageName:
     Type: String
     Description: The Stage or Environment name
-    Default: "${self:provider.stage}"
+    Default: "${self:custom.stageName}"
 
 Resources:
   DeadLetterQueue:
@@ -63,7 +63,7 @@ Resources:
       - CloudTrailBucketPolicy
     Type: AWS::CloudTrail::Trail
     Properties:
-      TrailName: uServerlessLogsTrail
+#      TrailName: uServerlessLogsTrail
       S3BucketName:
         Ref: CloudTrailS3Bucket
       IsLogging: true
