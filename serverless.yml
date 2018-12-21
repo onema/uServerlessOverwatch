@@ -37,16 +37,14 @@ functions:
   # functions
   log-registration:
     handler: io.onema.userverless.overwatch.logs.LogRegistrationFunction::lambdaHandler
-    onError: ${file(infrastructure/global-values.yml):deadLetterQueue}
     events: ${file(infrastructure/global-values.yml):loggroupEvents}
     environment:
       LOG_RETENTION_DAYS: 14
-      DESTINATION_FUNCTION: "${self:service}-${self:provider.stage}-log-parser"
+      DESTINATION_FUNCTION: "${self:service}-${self:custom.stageName}-log-parser"
       LOG_GROUP_PREFIX: "/aws/lambda"
 
   log-parser:
     handler: io.onema.userverless.overwatch.logs.ParserFunction::lambdaHandler
-    onError: ${file(infrastructure/global-values.yml):deadLetterQueue}
     description: parses logs for metrics errors and more
 
 # you can add CloudFormation resource templates here
