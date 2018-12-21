@@ -52,7 +52,9 @@ class LogRegistrationFunction extends LambdaHandler[LogCreationEvent, Unit] with
     val destinationFuncArn = s"arn:aws:lambda:$region:$accountId:function:$destinationFunc"
 
     // Ignore the destination function itself to avoid invocation loops and logs that do not use the configured prefix
-    if(logGroup == s"$logGroupPrefix/$destinationFunc" || !logGroup.startsWith(logGroupPrefix)) {
+    // TODO prevent any overwatch function from being registered, this is currently not working!!
+    // TODO only register functions with the same stage
+    if(logGroup == s"$logGroupPrefix/$destinationFunc" || !logGroup.startsWith(logGroupPrefix) || logGroup.startsWith(s"/aws/lambda/overwatch")) {
       log.info(s"""Ignoring the destination function $destinationFuncArn.""")
     } else {
       logic.updateSubscriptionFilter(logGroup, destinationFuncArn)

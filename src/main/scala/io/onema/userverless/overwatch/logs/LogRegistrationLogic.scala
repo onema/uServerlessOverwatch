@@ -29,6 +29,7 @@ class LogRegistrationLogic(val logClient: AWSLogs) {
   }
 
   def updateSubscriptionFilter(logGroup: String, functionArn: String): Unit = {
+    log.info(s"""Setting subscription filter for "$logGroup" """)
     val request = new PutSubscriptionFilterRequest()
       .withFilterName("µserverless-logs")
       .withDestinationArn(functionArn)

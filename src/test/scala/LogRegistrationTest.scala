@@ -1,8 +1,10 @@
 import java.io.ByteArrayInputStream
 
 import com.amazonaws.serverless.proxy.internal.testutils.MockLambdaContext
+import com.amazonaws.services.logs.AWSLogs
 import io.onema.userverless.events.LogRegistration.LogCreationEvent
-import io.onema.userverless.overwatch.logs.LogRegistrationFunction
+import io.onema.userverless.overwatch.logs.{LogRegistrationFunction, LogRegistrationLogic}
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 
 /**
@@ -16,7 +18,7 @@ import org.scalatest.{FlatSpec, Matchers}
   * @author Juan Manuel Torres <software@onema.io>
   */
 
-class LogRegistrationTest extends FlatSpec with Matchers {
+class LogRegistrationTest extends FlatSpec with Matchers with MockFactory {
   "A function LogRegistrationFunction" should "decode payload" in {
     // Arrange
     class LRFTest extends LogRegistrationFunction {
@@ -35,4 +37,16 @@ class LogRegistrationTest extends FlatSpec with Matchers {
 
   }
 
+  "A function LogRegistrationFunction" should "not allow subscription if it is an overwatch function" in {
+    // Arrange
+    class LRFTest(logsClient: AWSLogs) extends LogRegistrationFunction {
+      override val logic: LogRegistrationLogic = new LogRegistrationLogic(logsClient)
+    }
+    val logsClient  =  mock[AWSLogs]
+    (logsClient.putSubscriptionFilter _).expects(*).never()
+    val func = new LRFTest(logsClient)
+
+    // Act - Assert
+    func.subscribe("foo", "123456789012", "/aws/lambda/overwatch-foo-bar-baz")
+  }
 }
