@@ -79,7 +79,7 @@ object ParserLogic {
           .jsonDecode[LogMessage](Rename.logMessage)
       })
       metricLogs
-        .groupBy(_.function)
+        .groupBy(_.appName)
         .flatMap { case (func, v) => v.map(m => {
         Try(parseMetric(m.message, func)) match {
           case Success(metric) => Some(metric)
@@ -105,7 +105,7 @@ object ParserLogic {
     messages.filter(x => x.startsWith(reportPrefix))
       .map(x => {
         // Remove trailing tabs
-        val reportEntries = x.stripSuffix("\t")
+        val reportEntries = x.stripSuffix("\t\n")
           // Remove the Report prefix
           .stripPrefix(reportPrefix)
           // split on tabs, ms, and MB
@@ -146,7 +146,7 @@ object ParserLogic {
       .headOption.getOrElse(throw new Exception(s"""Invalid report string "$reportStr". Must be in the form "key: value""""))
   }
 
-  def parseMetric(metric: String, functionName: String): Metric = {
+  def parseMetric(metric: String, appName: String): Metric = {
     log.info(s"PARSING: $metric")
     val metricSection :: tags :: _= metric.split("#").toList
     val name :: metrics :: _ = metricSection.split(":").toList
@@ -156,7 +156,7 @@ object ParserLogic {
       .grouped(2) // Make groups of two
       .map { case Array(k, v) => k -> v } // make key value pairs and transform it to a map
       .toMap
-    Metric(name, value.toDouble, metricType, sampleRate, tagMap, functionName)
+    Metric(name, value.toDouble, metricType, sampleRate, tagMap, appName)
   }
 
   case class LogEvents(id: Option[String], timestamp: Option[Double], message: String)
