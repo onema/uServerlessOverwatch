@@ -12,38 +12,48 @@
 package io.onema.userverless.overwatch.logs
 
 
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.events.CloudWatchLogsEvent
 import com.amazonaws.services.sns.AmazonSNSClientBuilder
 import io.onema.userverless.configuration.lambda.EnvLambdaConfiguration
 import io.onema.userverless.function.LambdaHandler
 import io.onema.userverless.monitoring.LogMetrics._
-import io.onema.userverless.overwatch.metrics.{ErrorReporter, MetricReporter}
 
 
 class ParserFunction extends LambdaHandler[CloudWatchLogsEvent, Unit] with EnvLambdaConfiguration {
 
   //--- Fields ---
   private val snsErrorTopic = getValue("/sns/error/topic")
-  private val metricReporter = new MetricReporter(AmazonCloudWatchClientBuilder.defaultClient())
-  private val errorReporter = new ErrorReporter(AmazonSNSClientBuilder.defaultClient(), snsErrorTopic)
+  private val snsNotificationTopic = getValue("/sns/notification/topic")
+  private val snsLogTopic = getValue("/sns/log/topic")
+  private val snsMetricTopic = getValue("/sns/metric/topic")
+  private val reporter = new Reporter(AmazonSNSClientBuilder.defaultClient(), snsErrorTopic, snsNotificationTopic, snsLogTopic, snsMetricTopic)
 
   //--- Methods ---
   override def execute(event: CloudWatchLogsEvent, context: Context): Unit = {
-    val parsedResults = time("ParseLogs") {
+    val parsedResults: ParserLogic.ParsedResults = time("ParseLogs") {
       val base64Event = event.getAwsLogs.getData
       ParserLogic.parse(base64Event)
     }
 
     time("MetricsReport") {
       log.debug(s"Submitting ${parsedResults.metrics.length} metrics")
-      parsedResults.metrics.groupBy(_.appName).foreach { case (a, m) => metricReporter.submit(a, m)}
+      reporter.metric(parsedResults.metrics)
     }
 
     time("ErrorReport") {
       log.debug(s"Submitting ${parsedResults.errors.length} errors")
-      parsedResults.errors.foreach(errorReporter.submit)
+      parsedResults.errors.foreach(reporter.error)
+    }
+
+    time("NotificationsReport") {
+      log.debug(s"Submitting ${parsedResults.report.length} reports")
+      parsedResults.report.foreach(reporter.report(_, parsedResults.functionName))
+    }
+
+    time("LogReport") {
+      log.debug(s"Submitting ${parsedResults.logMessages.length} logs")
+      reporter.log(parsedResults.logMessages)
     }
   }
 }
