@@ -9,7 +9,7 @@
   * @author Juan Manuel Torres <software@onema.io>
   */
 
-package io.onema.userverless.overwatch.logs
+package io.onema.userverless.overwatch.registration
 
 import com.amazonaws.services.logs.AWSLogs
 import com.amazonaws.services.logs.model.{PutRetentionPolicyRequest, PutSubscriptionFilterRequest}
@@ -19,7 +19,7 @@ class LogRegistrationLogic(val logClient: AWSLogs) {
 
   //--- Fields ---
   val log = Logger(classOf[LogRegistrationLogic])
-  val filterPattern: String = """?"*** DEBUG" ?"*** INFO" ?"*** WARN" ?"ERROR" ?"*** METRIC" """
+  val filterPattern: String = """?"*** DEBUG" ?"*** INFO" ?"*** WARN" ?"ERROR" ?"*** METRIC" "REPORT" """
 
   //--- Methods ---
   def updateRetentionPolicy(logGroup: String, retentionTime: Int): Unit = {
@@ -37,5 +37,4 @@ class LogRegistrationLogic(val logClient: AWSLogs) {
       .withFilterPattern(filterPattern)
     logClient.putSubscriptionFilter(request)
   }
-
 }

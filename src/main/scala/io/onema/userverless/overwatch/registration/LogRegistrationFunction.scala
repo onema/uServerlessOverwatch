@@ -9,20 +9,20 @@
   * @author Juan Manuel Torres <software@onema.io>
   */
 
-package io.onema.userverless.overwatch.logs
+package io.onema.userverless.overwatch.registration
 
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.logs.{AWSLogs, AWSLogsClientBuilder}
+import io.onema.json.Extensions._
 import io.onema.userverless.configuration.lambda.EnvLambdaConfiguration
-import io.onema.userverless.events.LogRegistration.LogCreationEvent
+import io.onema.userverless.events.CloudTrailCloudWatchEvent.CloudWatchLogEvent
 import io.onema.userverless.function.Extensions._
 import io.onema.userverless.function.LambdaHandler
-import io.onema.json.Extensions._
-import org.json4s.{FieldSerializer, Formats, NoTypeHints}
 import org.json4s.FieldSerializer._
 import org.json4s.jackson.Serialization
+import org.json4s.{FieldSerializer, Formats, NoTypeHints}
 
-class LogRegistrationFunction extends LambdaHandler[LogCreationEvent, Unit] with EnvLambdaConfiguration {
+class LogRegistrationFunction extends LambdaHandler[CloudWatchLogEvent, Unit] with EnvLambdaConfiguration {
 
   //--- Fields ---
   val client: AWSLogs = AWSLogsClientBuilder.defaultClient()
@@ -32,7 +32,7 @@ class LogRegistrationFunction extends LambdaHandler[LogCreationEvent, Unit] with
   val logGroupPrefix: String = getValue("log/group/prefix").getOrElse("/aws/lambda")
 
   //--- Methods ---
-  override def execute(event: LogCreationEvent, context: Context): Unit = {
+  override def execute(event: CloudWatchLogEvent, context: Context): Unit = {
 
     // Update retention policy of the newly created log group
     event.detail.requestParameters match {
@@ -49,26 +49,24 @@ class LogRegistrationFunction extends LambdaHandler[LogCreationEvent, Unit] with
   }
 
   def subscribe(destinationFunc: String, accountId: String, logGroup: String): Unit = {
-    val destinationFuncArn = s"arn:aws:lambda:$region:$accountId:function:$destinationFunc"
+    val destinationFuncArn = s"arn:aws:lambda:$region:$accountId:functionArn:$destinationFunc"
 
-    // Ignore the destination function itself to avoid invocation loops and logs that do not use the configured prefix
-    // TODO prevent any overwatch function from being registered, this is currently not working!!
-    // TODO only register functions with the same stage
-    if(logGroup == s"$logGroupPrefix/$destinationFunc" || !logGroup.startsWith(logGroupPrefix) || logGroup.startsWith(s"/aws/lambda/overwatch")) {
-      log.info(s"""Ignoring the destination function $destinationFuncArn.""")
+    // Ignore the destination functionArn itself to avoid invocation loops and logs that do not use the configured prefix
+    if(logGroup == s"$logGroupPrefix/$destinationFunc" || !logGroup.startsWith(logGroupPrefix) || logGroup.startsWith(s"/aws/lambda/overwatch") || !logGroup.contains(stageName)) {
+      log.info(s"""Ignoring the destination functionArn $destinationFuncArn.""")
     } else {
       logic.updateSubscriptionFilter(logGroup, destinationFuncArn)
     }
   }
 
-  override def jsonDecode(json: String): LogCreationEvent = {
+  override def jsonDecode(json: String): CloudWatchLogEvent = {
     def fieldRenames: Formats = {
       Serialization.formats(NoTypeHints) +
-        FieldSerializer[LogCreationEvent](
+        FieldSerializer[CloudWatchLogEvent](
           renameTo("detailType", "detail-type"),
           renameFrom("detail-type", "detailType")
         )
     }
-    json.jsonDecode[LogCreationEvent](fieldRenames)
+    json.jsonDecode[CloudWatchLogEvent](fieldRenames)
   }
 }
