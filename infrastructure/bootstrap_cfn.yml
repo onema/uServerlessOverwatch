@@ -2,27 +2,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Description: >
-  Template to create basic infrastructure for uServerless
-
-Parameters:
-  StageName:
-    Type: String
-    Description: The Stage or Environment name
-    Default: "${self:custom.stageName}"
+  Template to create basic infrastructure for uServerless Overwatch
 
 Resources:
-  DeadLetterQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName:
-        Fn::Join: ["-", [Ref: StageName, "dead-letter-queue"]]
-
-  SNSErrorTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName:
-        Fn::Join: ["-", [Ref: StageName, "error-topic"]]
-
   CloudTrailS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -58,7 +40,7 @@ Resources:
               StringEquals:
                 s3:x-amz-acl: bucket-owner-full-control
 
-  CloudTrailCloudWatchLogs:
+  CloudTrail:
     DependsOn:
       - CloudTrailBucketPolicy
     Type: AWS::CloudTrail::Trail
@@ -67,49 +49,11 @@ Resources:
       S3BucketName:
         Ref: CloudTrailS3Bucket
       IsLogging: true
-  LambdaInvokePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        "Ref": LogDashparserLambdaFunction
-      Principal:
-        Fn::Join: [".", [logs, Ref: AWS::Region, amazonaws, com]]
 
 Outputs:
   uServerlessCloudTrail:
     Description: The cloud trail created to respond to log stream creation
     Value:
-      Ref: CloudTrailCloudWatchLogs
+      Ref: CloudTrail
     Export:
-      Name:
-        Fn::Join: ["-", [Ref: StageName, "cloud-trail-cloudwatch-logs"]]
-
-  SnsErrorTopicArn:
-    Description: The ARN of the Error Topic
-    Value:
-      Ref: SNSErrorTopic
-    Export:
-      Name:
-        Fn::Join: ["-", [Ref: StageName, "error-topic-arn"]]
-  SnsErrorTopicName:
-    Description: The Name of the Error Topic
-    Value:
-      Fn::GetAtt: [SNSErrorTopic, "TopicName"]
-    Export:
-      Name:
-        Fn::Join: ["-", [Ref: StageName, "error-topic-name"]]
-  DeadLetterQueueURL:
-    Description: URL of the dead letter queue
-    Value:
-      Ref: DeadLetterQueue
-    Export:
-      Name:
-        Fn::Join: ["-", [Ref: StageName, "dead-letter-queue-url"]]
-  DeadLetterQueueARN:
-    Description: ARN of the dead letter queue
-    Value:
-      Fn::GetAtt: [DeadLetterQueue, Arn]
-    Export:
-      Name:
-        Fn::Join: ["-", [Ref: StageName, "dead-letter-queue-arn"]]
+      Name: "userverless-cloud-trail"

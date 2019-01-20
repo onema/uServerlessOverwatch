@@ -23,6 +23,11 @@ iamRoleStatements:
       Ref: SNSErrorTopic
   - Effect: Allow
     Action:
+      - sqs:SendMessage
+    Resource:
+      Fn::GetAtt: [DeadLetterQueue, Arn]
+  - Effect: Allow
+    Action:
       - lambda:UpdateFunctionConfiguration
     Resource: "*"
 
@@ -34,6 +39,12 @@ environment:
   STAGE_NAME: ${self:custom.stageName}
   SNS_ERROR_TOPIC:
     Ref: SNSErrorTopic
+  SNS_NOTIFICATION_TOPIC:
+    Ref: SNSNotificationTopic
+  SNS_LOG_TOPIC:
+    Ref: SNSLogTopic
+  SNS_METRIC_TOPIC:
+    Ref: SNSMetricTopic
   APP_NAME: ${self:service}
 
 loggroupEvents:
@@ -48,6 +59,19 @@ loggroupEvents:
             - logs.amazonaws.com
           eventName:
             - CreateLogGroup
+
+lambdaCreatedEvents:
+  - cloudwatchEvent:
+      event:
+        source:
+          - aws.lambda
+        detail-type:
+          - AWS API Call via CloudTrail
+        detail:
+          eventSource:
+            - lambda.amazonaws.com
+          eventName:
+            - CreateFunction20150331
 
 custom:
   stageName: ${opt:stage, self:provider.stage}
