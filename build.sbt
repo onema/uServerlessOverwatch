@@ -5,7 +5,7 @@ lazy val root = (project in file("."))
 
     name := "userverless-overwatch",
 
-    version := "0.3.0",
+    version := "0.2.0",
 
     scalaVersion := "2.12.7",
 
