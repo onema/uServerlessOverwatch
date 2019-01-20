@@ -9,9 +9,6 @@ iamRoleStatements:
     Resource:
       - Fn::GetAtt: [DeadLetterQueue, Arn]
   - Effect: Allow
-    Action: cloudwatch:PutMetricData
-    Resource: "*"
-  - Effect: Allow
     Action:
       - logs:PutRetentionPolicy
       - logs:PutSubscriptionFilter
@@ -20,7 +17,10 @@ iamRoleStatements:
     Action:
       - sns:Publish
     Resource:
-      Ref: SNSErrorTopic
+       - Ref: SNSErrorTopic
+       - Ref: SNSLogTopic
+       - Ref: SNSNotificationTopic
+       - Ref: SNSMetricTopic
   - Effect: Allow
     Action:
       - sqs:SendMessage
