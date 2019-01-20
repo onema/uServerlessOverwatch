@@ -39,7 +39,7 @@ class LogParserTest extends FlatSpec with Matchers {
   "Log Parser Function" should "decode another payload" in {
     // Arrange
     val base64EncodedEvent = "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"
-    val functionName = "functionName"
+    val functionName = "appName"
 
     // Act
     val response = ParserLogic.decodeEvent(base64EncodedEvent)
@@ -53,7 +53,38 @@ class LogParserTest extends FlatSpec with Matchers {
     errors.length should be (2)
     metrics.length should be (4)
     logs.length should be (3)
-    metrics.head.appName should be  ("echoapi-dev-echoapi-function")
+    metrics.head.appName should be  ("test")
+  }
+
+  "Log Parser Function " should "parse function report" in {
+    // Act
+    val base64EncodedEvent = "H4sIAAAAAAAAAE2QQW7bMBBFr0IQXUbVDCWSoncOogYFarSw1FVsFJRIBwIkyyXpuGmQY/UCOVlHRgp0ReL/+fPw54VPPkb76Nvnk+crfrdu1z82ddOs72t+w+fL0QeSQUmUUClADSSP8+N9mM8ncnJ7iflop87Z9yeb7DD6kCUfU3aYw8UGR0uuqSYFbyeKCUCTA+YC8ocPX9Zt3bR72zunfVVpPPSl6VwldeeUwBKllEot4HjuYh+GUxrm46dhTD5Evnrgb3+iD08+jNQlI0zk+yuufvLHtEy88MERtSilQCioilEGBIDBCozURppCLX9NHFRKGVmoUmBhtDYkEjkNdKhkJ+qMstRGK2kAhbr5d0Bav62/fd22bOt/nmn2s1sx2/fCFocio41dVnYVZgYPKlNY2r4reugN7tLdOdil0YohKPwIwKa4S7fDOHrH/jPx6rBd2vhpDs+sGX77JSNKtrkl1f5i78736ImOwlyN3ZG/7l//AmxFaBfrAQAA"
+    val response = ParserLogic.decodeEvent(base64EncodedEvent)
+    val logEvents = response.logEvents.map(_.message)
+    val report = ParserLogic.report()(logEvents)
+
+    // Assert
+    response.logEvents.length should be (1)
+    report.length should be (1)
+    report.head.duration.value should be ("1061.00")
+    report.head.duration.reportUnit should be ("ms")
+    report.head.billedDuration.value should be ("1100")
+    report.head.billedDuration.reportUnit should be ("ms")
+    report.head.memorySize.value should be ("1024")
+    report.head.memorySize.reportUnit should be ("MB")
+    report.head.maxMemoryUsed.value should be ("129")
+    report.head.maxMemoryUsed.reportUnit should be ("MB")
+  }
+
+  "Log Parser Function " should "parse function report2" in {
+    // Act
+    val base64EncodedEvent = "H4sIAAAAAAAAAK2Rz24TMRDGX2W14hg3Y3v8Z3JL1VAhEYGScGoq5KydaqXdJKydllL1sXgBnoxJCQIkJC6cxjPfzHz6jZ/qPuUc7tLq8ZDqSX01XU0/zmfL5fR6Vo/q/cMuDVwGa6QBb0E64HK3v7se9scDK+PwkMdd6DcxnIPoQ9ulQZSUy/n9Y2RZhhR6nlEgaQxyrGB88+rtdDVbrm632kMTcdtYv8FoTLDOEnok1Fo7lLwiHze5GdpDafe7121X0pDryU397WtOw30aOgYRbJPr2xe72X3alVPHU91GdtVolARDxPsUoUTjTkTaETkAkspKS95KIkWG0BjQRpNy7FxavlIJPQNLg46c8xYd4Ojn9Xj9Yvb+3WJVLdKnI/e+iZPKek/RkxPKxyhw00QRGgjCSHSnLKiI63J1HMKJiPvthVZVn9flsu26FKtfkgRgoVqXeer3w2O1bL+kU1VhNb/kavhcnZUPObG1tPAirHf18+gPfgtKGwI0kn8BiCE55xsA70JFGsAo5YED357Aaft3fueV+Qd/0C6hl05g4xqBPm1FwOgFKCddaKyUin7nR7pQ7v/z3z5/By/yz1zlAgAA"
+    val response = ParserLogic.decodeEvent(base64EncodedEvent)
+    val logEvents = response.logEvents.map(_.message)
+    val report = ParserLogic.report()(logEvents)
+
+    // Assert
+    response.logEvents.length should be (2)
   }
 
   "Metric Parser " should "decode a metric" in {

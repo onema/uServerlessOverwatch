@@ -36,14 +36,11 @@ class LogRegistrationTest extends FlatSpec with Matchers with MockFactory {
 
   "A functionArn LogRegistrationFunction" should "not allow subscription if it is an overwatch functionArn" in {
     // Arrange
-    class LRFTest(logsClient: AWSLogs) extends LogRegistrationFunction {
-      override val logic: LogRegistrationLogic = new LogRegistrationLogic(logsClient)
-    }
     val logsClient  =  mock[AWSLogs]
+    val logic: LogRegistrationLogic = new LogRegistrationLogic(logsClient, "/aws/lambda/")
     (logsClient.putSubscriptionFilter _).expects(*).never()
-    val func = new LRFTest(logsClient)
 
     // Act - Assert
-    func.subscribe("foo", "123456789012", "/aws/lambda/overwatch-foo-bar-baz")
+    logic.subscribe("foo", "123456789012", "/aws/lambda/overwatch-foo-bar-baz", "test", "test-region")
   }
 }
