@@ -9,9 +9,6 @@ iamRoleStatements:
     Resource:
       - Fn::GetAtt: [DeadLetterQueue, Arn]
   - Effect: Allow
-    Action: cloudwatch:PutMetricData
-    Resource: "*"
-  - Effect: Allow
     Action:
       - logs:PutRetentionPolicy
       - logs:PutSubscriptionFilter
@@ -20,7 +17,15 @@ iamRoleStatements:
     Action:
       - sns:Publish
     Resource:
-      Ref: SNSErrorTopic
+       - Ref: SNSErrorTopic
+       - Ref: SNSLogTopic
+       - Ref: SNSNotificationTopic
+       - Ref: SNSMetricTopic
+  - Effect: Allow
+    Action:
+      - sqs:SendMessage
+    Resource:
+      Fn::GetAtt: [DeadLetterQueue, Arn]
   - Effect: Allow
     Action:
       - lambda:UpdateFunctionConfiguration
@@ -34,6 +39,12 @@ environment:
   STAGE_NAME: ${self:custom.stageName}
   SNS_ERROR_TOPIC:
     Ref: SNSErrorTopic
+  SNS_NOTIFICATION_TOPIC:
+    Ref: SNSNotificationTopic
+  SNS_LOG_TOPIC:
+    Ref: SNSLogTopic
+  SNS_METRIC_TOPIC:
+    Ref: SNSMetricTopic
   APP_NAME: ${self:service}
 
 loggroupEvents:
@@ -49,8 +60,18 @@ loggroupEvents:
           eventName:
             - CreateLogGroup
 
+lambdaCreatedEvents:
+  - cloudwatchEvent:
+      event:
+        source:
+          - aws.lambda
+        detail-type:
+          - AWS API Call via CloudTrail
+        detail:
+          eventSource:
+            - lambda.amazonaws.com
+          eventName:
+            - CreateFunction20150331
+
 custom:
   stageName: ${opt:stage, self:provider.stage}
-
-deadLetterQueue:
-  Fn::ImportValue: "${self:custom.stageName}-dead-letter-queue-arn"

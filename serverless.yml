@@ -20,7 +20,7 @@ provider:
   stage: dev
   region: us-east-1
 
-  # you can add statements to the Lambda function's IAM Role here
+  # you can add statements to the Lambda functionArn's IAM Role here
   iamRoleStatements: ${file(infrastructure/global-values.yml):iamRoleStatements}
 
   # Service wide environment variables
@@ -36,21 +36,26 @@ functions:
 
   # functions
   log-registration:
-    handler: io.onema.userverless.overwatch.logs.LogRegistrationFunction::lambdaHandler
-    onError: ${file(infrastructure/global-values.yml):deadLetterQueue}
+    handler: io.onema.userverless.overwatch.registration.LogRegistrationFunction::lambdaHandler
     events: ${file(infrastructure/global-values.yml):loggroupEvents}
     environment:
       LOG_RETENTION_DAYS: 14
-      DESTINATION_FUNCTION: "${self:service}-${self:provider.stage}-log-parser"
+      DESTINATION_FUNCTION: "${self:service}-${self:custom.stageName}-log-parser"
       LOG_GROUP_PREFIX: "/aws/lambda"
+
+  dql-registration:
+    handler: io.onema.userverless.overwatch.registration.QueueRegistrationFunction::lambdaHandler
+    events: ${file(infrastructure/global-values.yml):lambdaCreatedEvents}
+    environment:
+      DQL_ARN:
+        Fn::GetAtt: [DeadLetterQueue, Arn]
 
   log-parser:
     handler: io.onema.userverless.overwatch.logs.ParserFunction::lambdaHandler
-    onError: ${file(infrastructure/global-values.yml):deadLetterQueue}
     description: parses logs for metrics errors and more
 
 # you can add CloudFormation resource templates here
 resources:
-  Parameters: ${file(infrastructure/bootstrap_cfn.yml):Parameters}
-  Resources: ${file(infrastructure/bootstrap_cfn.yml):Resources}
-  Outputs: ${file(infrastructure/bootstrap_cfn.yml):Outputs}
+  Parameters: ${file(infrastructure/core-overwatch_cfn.yml):Parameters}
+  Resources: ${file(infrastructure/core-overwatch_cfn.yml):Resources}
+  Outputs: ${file(infrastructure/core-overwatch_cfn.yml):Outputs}

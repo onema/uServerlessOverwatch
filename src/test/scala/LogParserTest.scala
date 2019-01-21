@@ -9,9 +9,11 @@
   * @author Juan Manuel Torres <software@onema.io>
   */
 
-import io.onema.userverless.model.Log
+import io.onema.json.Extensions._
+import io.onema.userverless.model.Log.{LogMessage, Rename}
+import io.onema.userverless.model.{Log, Metric}
 import io.onema.userverless.overwatch.logs.ParserLogic
-import io.onema.userverless.overwatch.metrics.MetricReporter
+import io.onema.userverless.overwatch.logs.ParserLogic._
 import org.scalatest.{FlatSpec, Matchers}
 
 
@@ -19,6 +21,7 @@ class LogParserTest extends FlatSpec with Matchers {
 
   val errorPrefix = "*** ERROR :"
   val metricPrefix = "*** METRIC :"
+  val reportPrefix = "REPORT"
   val logRegex = "[\\*]+ [A-Z\\s]+:"
 
   "Log Parser Function" should "decode the log payload" in {
@@ -35,13 +38,14 @@ class LogParserTest extends FlatSpec with Matchers {
 
   "Log Parser Function" should "decode another payload" in {
     // Arrange
-    val base64EncodedEvent = "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"
+    val base64EncodedEvent = "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"
+    val functionName = "appName"
 
     // Act
     val response = ParserLogic.decodeEvent(base64EncodedEvent)
     val logEvents = response.logEvents.map(_.message)
     val errors: Seq[Log.LogErrorMessage] = ParserLogic.errors()(logEvents)
-    val metrics: Seq[Log.LogMessage] = ParserLogic.metrics()(logEvents)
+    val metrics: Seq[Metric] = ParserLogic.metrics()(logEvents)
     val logs: Seq[Log.LogMessage] = ParserLogic.logs()(logEvents)
 
     // Assert
@@ -49,68 +53,127 @@ class LogParserTest extends FlatSpec with Matchers {
     errors.length should be (2)
     metrics.length should be (4)
     logs.length should be (3)
+    metrics.head.appName should be  ("test")
+  }
+
+  "Log Parser Function " should "parse function report" in {
+    // Act
+    val base64EncodedEvent = "H4sIAAAAAAAAAE2QQW7bMBBFr0IQXUbVDCWSoncOogYFarSw1FVsFJRIBwIkyyXpuGmQY/UCOVlHRgp0ReL/+fPw54VPPkb76Nvnk+crfrdu1z82ddOs72t+w+fL0QeSQUmUUClADSSP8+N9mM8ncnJ7iflop87Z9yeb7DD6kCUfU3aYw8UGR0uuqSYFbyeKCUCTA+YC8ocPX9Zt3bR72zunfVVpPPSl6VwldeeUwBKllEot4HjuYh+GUxrm46dhTD5Evnrgb3+iD08+jNQlI0zk+yuufvLHtEy88MERtSilQCioilEGBIDBCozURppCLX9NHFRKGVmoUmBhtDYkEjkNdKhkJ+qMstRGK2kAhbr5d0Bav62/fd22bOt/nmn2s1sx2/fCFocio41dVnYVZgYPKlNY2r4reugN7tLdOdil0YohKPwIwKa4S7fDOHrH/jPx6rBd2vhpDs+sGX77JSNKtrkl1f5i78736ImOwlyN3ZG/7l//AmxFaBfrAQAA"
+    val response = ParserLogic.decodeEvent(base64EncodedEvent)
+    val logEvents = response.logEvents.map(_.message)
+    val report = ParserLogic.report()(logEvents)
+
+    // Assert
+    response.logEvents.length should be (1)
+    report.length should be (1)
+    report.head.duration.value should be ("1061.00")
+    report.head.duration.reportUnit should be ("ms")
+    report.head.billedDuration.value should be ("1100")
+    report.head.billedDuration.reportUnit should be ("ms")
+    report.head.memorySize.value should be ("1024")
+    report.head.memorySize.reportUnit should be ("MB")
+    report.head.maxMemoryUsed.value should be ("129")
+    report.head.maxMemoryUsed.reportUnit should be ("MB")
+  }
+
+  "Log Parser Function " should "parse function report2" in {
+    // Act
+    val base64EncodedEvent = "H4sIAAAAAAAAAK2Rz24TMRDGX2W14hg3Y3v8Z3JL1VAhEYGScGoq5KydaqXdJKydllL1sXgBnoxJCQIkJC6cxjPfzHz6jZ/qPuUc7tLq8ZDqSX01XU0/zmfL5fR6Vo/q/cMuDVwGa6QBb0E64HK3v7se9scDK+PwkMdd6DcxnIPoQ9ulQZSUy/n9Y2RZhhR6nlEgaQxyrGB88+rtdDVbrm632kMTcdtYv8FoTLDOEnok1Fo7lLwiHze5GdpDafe7121X0pDryU397WtOw30aOgYRbJPr2xe72X3alVPHU91GdtVolARDxPsUoUTjTkTaETkAkspKS95KIkWG0BjQRpNy7FxavlIJPQNLg46c8xYd4Ojn9Xj9Yvb+3WJVLdKnI/e+iZPKek/RkxPKxyhw00QRGgjCSHSnLKiI63J1HMKJiPvthVZVn9flsu26FKtfkgRgoVqXeer3w2O1bL+kU1VhNb/kavhcnZUPObG1tPAirHf18+gPfgtKGwI0kn8BiCE55xsA70JFGsAo5YED357Aaft3fueV+Qd/0C6hl05g4xqBPm1FwOgFKCddaKyUin7nR7pQ7v/z3z5/By/yz1zlAgAA"
+    val response = ParserLogic.decodeEvent(base64EncodedEvent)
+    val logEvents = response.logEvents.map(_.message)
+    val report = ParserLogic.report()(logEvents)
+
+    // Assert
+    response.logEvents.length should be (2)
   }
 
   "Metric Parser " should "decode a metric" in {
     // Arrange
-    val rawMetric = "WarmUpEvent:200|ms|@1|#function:overwatch-dev-log_parser,version:$LATEST,stage:dev"
+    val rawMetric = "WarmUpEvent:200|ms|@1|#functionArn:overwatch-dev-log_parser,version:$LATEST,stage:dev"
 
     // Act
-    val metric = MetricReporter.parseMetric(rawMetric)
+    val metric = ParserLogic.parseMetric(rawMetric, "testFunction")
 
     // Assert
     metric.name should be ("WarmUpEvent")
     metric.value should be (200)
     metric.sampleRate should be ("@1")
     metric.metricType should be ("ms")
-    metric.tagMap("function") should be ("overwatch-dev-log_parser")
+    metric.tagMap("functionArn") should be ("overwatch-dev-log_parser")
     metric.tagMap("version") should be ("$LATEST")
     metric.tagMap("stage") should be ("dev")
   }
 
   "Metric Parser " should "decode a metric with namespace" in {
     // Arrange
-    val rawMetric = "foo.warmup.event:200|ms|@1|#function:overwatch-dev-log_parser,version:$LATEST,stage:dev"
+    val rawMetric = "foo.warmup.event:200|ms|@1|#functionArn:overwatch-dev-log_parser,version:$LATEST,stage:dev"
 
     // Act
-    val metric = MetricReporter.parseMetric(rawMetric)
+    val metric = ParserLogic.parseMetric(rawMetric, "testFunction")
 
     // Assert
     metric.name should be ("foo.warmup.event")
     metric.value should be (200)
     metric.sampleRate should be ("@1")
     metric.metricType should be ("ms")
-    metric.tagMap("function") should be ("overwatch-dev-log_parser")
+    metric.tagMap("functionArn") should be ("overwatch-dev-log_parser")
     metric.tagMap("version") should be ("$LATEST")
     metric.tagMap("stage") should be ("dev")
   }
 
-  "Conversion to pascal case " should "be correct" in {
-    // Arrange
-    val name = "foo.warmup.event"
-
-    // Act
-    val result = MetricReporter.toPascalCase(name)
-
-    // Assert
-    result should be ("FooWarmupEvent")
-  }
+//  "Conversion to pascal case " should "be correct" in {
+//    // Arrange
+//    val name = "foo.warmup.event"
+//
+//    // Act
+//    val result = MetricReporter.toPascalCase(name)
+//
+//    // Assert
+//    result should be ("FooWarmupEvent")
+//  }
 
   "Metric Parser " should "decode a metric with additional values" in {
     // Arrange
-    val rawMetric = "ForwardingEmail:1|c|@1|#function:lambda-mailer-dev-forwarder,version:$LATEST,stage:dev,from:Juan Manuel Torres <myemail@yahoo.com>"
+    val rawMetric = "ForwardingEmail:1|c|@1|#functionArn:lambda-mailer-dev-forwarder,version:$LATEST,stage:dev,from:Juan Manuel Torres <myemail@yahoo.com>"
 
     // Act
-    val metric = MetricReporter.parseMetric(rawMetric)
+    val metric = ParserLogic.parseMetric( rawMetric, "testFunction")
 
     // Assert
     metric.name should be ("ForwardingEmail")
     metric.value should be (1)
     metric.sampleRate should be ("@1")
     metric.metricType should be ("c")
-    metric.tagMap("function") should be ("lambda-mailer-dev-forwarder")
+    metric.tagMap("functionArn") should be ("lambda-mailer-dev-forwarder")
     metric.tagMap("version") should be ("$LATEST")
     metric.tagMap("stage") should be ("dev")
     metric.tagMap("from") should be ("Juan Manuel Torres <myemail@yahoo.com>")
+    metric.appName should be ("testFunction")
+  }
+
+  "Report Parser " should "decode a report with error errorMessage" in {
+    // Arrange
+    val plainText = "REPORT RequestId: 73443423-093f-11e9-89f0-8773e4a516b5\tDuration: 183.11 ms\tBilled Duration: 200 ms Memory Size: 1024 MB\tMax Memory Used: 145 MB\t"
+    val logs = Logs(None, None, None, None, None, List(LogEvents(None, None, plainText))).asJson
+    val  encoded = ParserLogic.encodeEvent(logs)
+
+    // Act
+    val results = ParserLogic.parse(encoded)
+    val report = results.report.head
+
+    // Assert
+    results.report.length should be (1)
+    report.requestId should be ("73443423-093f-11e9-89f0-8773e4a516b5")
+    report.duration.value should be ("183.11")
+    report.duration.reportUnit should be ("ms")
+
+    report.billedDuration.value should be ("200")
+    report.billedDuration.reportUnit should be ("ms")
+
+    report.memorySize.value should be ("1024")
+    report.memorySize.reportUnit should be ("MB")
+
+    report.maxMemoryUsed.value should be ("145")
+    report.maxMemoryUsed.reportUnit should be ("MB")
   }
 }

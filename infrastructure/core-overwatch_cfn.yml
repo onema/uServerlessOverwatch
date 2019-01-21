@@ -1,0 +1,129 @@
+# Bootstrap infrastructure for uServerless
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Template to create shared app infrastructure for uServerless
+
+Parameters:
+  StageName:
+    Type: String
+    Description: The Stage or Environment name
+    Default: "${self:custom.stageName}"
+
+Resources:
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName:
+        Fn::Join: ["-", [Ref: StageName, "dead-letter-queue"]]
+
+  SNSErrorTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Join: ["-", [Ref: StageName, "error-topic"]]
+
+  SNSNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Join: ["-", [Ref: StageName, "notification-topic"]]
+
+  SNSLogTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Join: ["-", [Ref: StageName, "log-topic"]]
+
+  SNSMetricTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Join: ["-", [Ref: StageName, "metric-topic"]]
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: LogDashparserLambdaFunction
+      Principal:
+        Fn::Join: [".", [logs, Ref: AWS::Region, amazonaws, com]]
+      SourceAccount:
+        Ref: AWS::AccountId
+
+Outputs:
+  SnsErrorTopicArn:
+    Description: The ARN of the Error Topic
+    Value:
+      Ref: SNSErrorTopic
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "error-topic-arn"]]
+  SnsErrorTopicName:
+    Description: The Name of the Error Topic
+    Value:
+      Fn::GetAtt: [SNSErrorTopic, "TopicName"]
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "error-topic-name"]]
+
+  SnsNotificationTopicArn:
+    Description: The ARN of the Notification Topic
+    Value:
+      Ref: SNSNotificationTopic
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "notification-topic-arn"]]
+  SnsNotificationTopicName:
+    Description: The Name of the Notification Topic
+    Value:
+      Fn::GetAtt: [SNSNotificationTopic, "TopicName"]
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "notification-topic-name"]]
+
+  SnsLogTopicArn:
+    Description: The ARN of the Log Topic
+    Value:
+      Ref: SNSLogTopic
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "log-topic-arn"]]
+  SnsLogTopicName:
+    Description: The Name of the Error Topic
+    Value:
+      Fn::GetAtt: [SNSLogTopic, "TopicName"]
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "log-topic-name"]]
+
+  SnsMetricTopicArn:
+    Description: The ARN of the Metric Topic
+    Value:
+      Ref: SNSMetricTopic
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "metric-topic-arn"]]
+  SnsMetricTopicName:
+    Description: The Name of the Metric Topic
+    Value:
+      Fn::GetAtt: [SNSMetricTopic, "TopicName"]
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "metric-topic-name"]]
+
+  DeadLetterQueueURL:
+    Description: URL of the dead letter queue
+    Value:
+      Ref: DeadLetterQueue
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "dead-letter-queue-url"]]
+  DeadLetterQueueARN:
+    Description: ARN of the dead letter queue
+    Value:
+      Fn::GetAtt: [DeadLetterQueue, Arn]
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: StageName, "dead-letter-queue-arn"]]
