@@ -53,6 +53,8 @@ functions:
   log-parser:
     handler: io.onema.userverless.overwatch.logs.ParserFunction::lambdaHandler
     description: parses logs for metrics errors and more
+    reservedConcurrency: 1
+
 
 # you can add CloudFormation resource templates here
 resources:
