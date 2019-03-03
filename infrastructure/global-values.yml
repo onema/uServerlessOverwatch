@@ -35,6 +35,7 @@ iamRoleStatements:
 # Environment Variables
 # =======================================================================
 environment:
+  REPORT_EXCEPTION: false
   LOG_LEVEL: DEBUG
   STAGE_NAME: ${self:custom.stageName}
   SNS_ERROR_TOPIC:

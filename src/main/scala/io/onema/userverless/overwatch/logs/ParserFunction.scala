@@ -46,6 +46,16 @@ class ParserFunction extends LambdaHandler[CloudWatchLogsEvent, Unit] with EnvLa
       parsedResults.errors.foreach(reporter.error)
     }
 
+    time("MetaspaceErrorReport") {
+      log.debug(s"Submitting ${parsedResults.metaspaceErrors.length} Metaspace errors")
+      parsedResults.metaspaceErrors.foreach(reporter.error)
+    }
+
+    time("TimeOutErrorReport") {
+      log.debug(s"Submitting ${parsedResults.timeoutError.length} timeout error")
+      parsedResults.timeoutError.foreach(reporter.timeout)
+    }
+
     time("NotificationsReport") {
       log.debug(s"Submitting ${parsedResults.report.length} reports")
       parsedResults.report.foreach(reporter.report(_, parsedResults.functionName))

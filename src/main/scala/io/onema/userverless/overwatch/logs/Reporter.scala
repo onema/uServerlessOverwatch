@@ -16,19 +16,19 @@ import com.typesafe.scalalogging.Logger
 import io.onema.userverless.model.Log.{LogErrorMessage, LogMessage, Rename}
 import io.onema.json.Extensions._
 import io.onema.userverless.model.Metric
-import io.onema.userverless.overwatch.logs.ParserLogic.Report
+import io.onema.userverless.overwatch.logs.ParserLogic.{Report, TimeoutError}
 
 class Reporter(val snsClient: AmazonSNS, val errorTopic: Option[String], val notificationTopic: Option[String], val logTopic: Option[String], val metricTopic: Option[String]) {
   //--- Fields ---
-  val logger = Logger(classOf[Reporter])
+  val log = Logger(classOf[Reporter])
 
   //--- Methods ---
   def error(errorMessage: LogErrorMessage): Unit = {
     if(errorMessage.reportException) {
-      logger.debug(s"""Publishing error error "${errorMessage.message}" """)
+      log.debug(s"""Publishing error error "${errorMessage.message}" """)
       errorTopic.foreach(snsClient.publish(_, errorMessage.asJson(Rename.errorMessage)))
     } else {
-      logger.info(s"""SKIPPING Error error "${errorMessage.message}" as it has been marked as ignored""")
+      log.info(s"""SKIPPING Error error "${errorMessage.message}" as it has been marked as ignored""")
     }
   }
 
@@ -48,12 +48,19 @@ class Reporter(val snsClient: AmazonSNS, val errorTopic: Option[String], val not
   def report(report: Report, functionName: String): Unit = {
     val memoryPercent = (100/report.memorySize.value.toDouble) * report.maxMemoryUsed.value.toDouble
     val message = if(memoryPercent >= 100) {
+      log.debug("Memory notification Out Of memory")
       Some(s"""The function "$functionName" has run out of memory""")
-    } else if(memoryPercent > 80) {
+    } else if(memoryPercent > 60) {
+      log.debug("Memory consumption over 60%")
       Some(s"""The function "$functionName" memory usage is at $memoryPercent%""")
     } else {
       None
     }
     message.foreach(notification)
+  }
+
+  def timeout(error: TimeoutError): Unit = {
+    log.debug(s"Time out error ${error.message}")
+    notification(s"""The fucntion "${error.functionName}" ${error.message} """)
   }
 }

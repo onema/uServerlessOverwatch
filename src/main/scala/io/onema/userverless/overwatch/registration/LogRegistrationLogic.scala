@@ -19,7 +19,7 @@ class LogRegistrationLogic(val logClient: AWSLogs, val logGroupPrefix: String) {
 
   //--- Fields ---
   val log = Logger(classOf[LogRegistrationLogic])
-  val filterPattern: String = """?"*** DEBUG" ?"*** INFO" ?"*** WARN" ?"ERROR" ?"*** METRIC" ?"REPORT" """
+  val filterPattern: String = """?"*** DEBUG" ?"*** INFO" ?"*** WARN" ?"*** ERROR" ?"*** METRIC" ?"REPORT" ?"Metaspace" ?"Task timed out""""
 
   //--- Methods ---
   def subscribe(destinationFunc: String, accountId: String, logGroup: String, stageName: String, region: String): Unit = {
