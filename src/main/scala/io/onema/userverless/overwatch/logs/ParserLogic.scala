@@ -17,7 +17,7 @@ import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
 import com.typesafe.scalalogging.Logger
 import io.onema.json.Extensions._
-import io.onema.userverless.model.Log.{LogErrorMessage, LogMessage, Rename}
+import io.onema.userverless.model.Log.{LogErrorMessage, LogMessage, Rename, StackTraceElement}
 import io.onema.userverless.model.Metric
 
 import scala.util.{Failure, Success, Try}
@@ -28,21 +28,28 @@ object ParserLogic {
   val errorPrefix = "*** ERROR :"
   val metricPrefix = "*** METRIC :"
   val reportPrefix = "REPORT"
+  val metaspacePrefix = "Metaspace"
   val logRegex = "[\\*]+ [A-Z\\s]+:"
   val reportRegex = "\\t+| ms[ ]*| MB[ ]*"
   val log = Logger("parser-logic")
 
   //--- Methods ---
   def parse(encodedMessage: String): ParsedResults = {
-    val decodedLogs = decodeEvent(encodedMessage)
-    implicit val messages: Seq[String] = decodedLogs.logEvents.map(_.message)
+    val decodedLogs: Logs = decodeEvent(encodedMessage)
+    val messages: Seq[String] = decodedLogs.logEvents.map(_.message)
     val functionName = decodedLogs.logGroup.getOrElse("NA").split("/").last
+    val errors = getErrors(messages)
+    val metaspaceErrors = getMetaspaceErrors(functionName, messages)
+    val timeout = getTimeoutErrors(functionName, messages)
+    val metrics = getMetrics(messages)
+    val report = getReport(messages)
+    val logs = getLogs(messages)
     log.debug(s"Decoding errors $errors")
+    log.debug(s"Decoding metaspace errors $metaspaceErrors")
     log.debug(s"Decoding metrics $metrics")
     log.debug(s"Decoding all others $report")
     log.debug(s"Decoding all others $logs")
-
-    ParsedResults(functionName, errors, metrics, logs, report)
+    ParsedResults(functionName, errors, metaspaceErrors, timeout, metrics, logs, report)
   }
 
   final def decodeEvent(base64Event: String): Logs = {
@@ -62,7 +69,7 @@ object ParserLogic {
     Base64.getEncoder.encodeToString(compressed)
   }
 
-  def errors()(implicit messages: Seq[String]): Seq[LogErrorMessage] = {
+  def getErrors(messages: Seq[String]): Seq[LogErrorMessage] = {
     messages.filter(_.startsWith(errorPrefix))
       .map(x => {
         x.stripPrefix(errorPrefix)
@@ -71,7 +78,29 @@ object ParserLogic {
       })
   }
 
-  def metrics()(implicit messages: Seq[String]): Seq[Metric] = {
+  def getMetaspaceErrors(functionName: String, messages: Seq[String]): Seq[LogErrorMessage] = {
+    messages.filter(_.startsWith(metaspacePrefix))
+      .map(x => {
+        val splitVals = x.split("\n\t|\n")
+        val cls = splitVals.head.split("Metaspace: ").last
+        val stackTrace = splitVals.filter(_.startsWith("at")).map(stackTraceElements).toSeq
+        LogErrorMessage(splitVals.head, "NA", cls, stackTrace, appName = "NA", function = functionName, lambdaVersion = "NA")
+      })
+  }
+
+  def getTimeoutErrors(functionName: String, messages: Seq[String]): Seq[TimeoutError] = {
+    messages.filter(_.contains("Task timed out after"))
+      .map(x => {
+        val regex = "(Task timed out after[\\s]*)([\\d]+.[\\d]+)[\\s]([\\w]+)".r
+        val matches = regex.findAllIn(x)
+        val value = matches.group(2)
+        val unit = matches.group(3)
+        val message = matches.mkString
+        TimeoutError(functionName,message, value, unit)
+      })
+  }
+
+  def getMetrics(messages: Seq[String]): Seq[Metric] = {
     val metricLogs = messages.filter(_.startsWith(metricPrefix))
       .map(x => {
         x.stripPrefix(metricPrefix)
@@ -92,8 +121,8 @@ object ParserLogic {
       }.toSeq
   }
 
-  def logs()(implicit messages: Seq[String]): Seq[LogMessage] = {
-    messages.filter(x => !x.startsWith(errorPrefix) && !x.startsWith(metricPrefix) && !x.startsWith(reportPrefix))
+  def getLogs(messages: Seq[String]): Seq[LogMessage] = {
+    messages.filter(x => !x.startsWith(errorPrefix) && !x.startsWith(metaspacePrefix) && !x.startsWith(metricPrefix) && !x.startsWith(reportPrefix) && !x.contains("Task timed out after"))
       .map(x => {
         x.replaceFirst(logRegex, "")
           .stripSuffix("\n")
@@ -101,7 +130,7 @@ object ParserLogic {
       })
   }
 
-  def report()(implicit  messages: Seq[String]): Seq[Report] = {
+  def getReport(messages: Seq[String]): Seq[Report] = {
     messages.filter(x => x.startsWith(reportPrefix))
       .map(x => {
         // Remove trailing tabs
@@ -125,10 +154,24 @@ object ParserLogic {
       })
   }
 
-    /**
-      * Split strings of the form "key: value"
-      * @return Report object
-      */
+  /**
+    * This matches on 4 groups (at)(Class Name+)(File Name+)(Line Number*):
+    *     at java.lang.ClassLoader.defineClass$1(Native Method)
+    *     at java.lang.ClassLoader.defineClass(ClassLoader.java:763)
+    * @param str: A line from the stack trace
+    * @return StackTraceElement
+    */
+  private def stackTraceElements(str: String): StackTraceElement = {
+    val traceRegex = "(^at\\s)([\\d\\w.$\\<\\>]+)\\(([\\d\\w\\s.]+)[:]*([\\d]*)\\)".r
+    val x = traceRegex.findAllIn(str)
+    val lineNumber = if(x.group(4).isEmpty) 0 else x.group(4).toInt
+    StackTraceElement(fileName = x.group(3), lineNumber = lineNumber, className = x.group(2), methodName = "NA")
+  }
+
+  /**
+    * Split strings of the form "key: value"
+    * @return Report object
+    */
   def toReportEntry(reportStr: String): ReportEntry = {
     reportStr
       .split(": ")
@@ -174,7 +217,9 @@ object ParserLogic {
 
   case class ReportEntry(name: String, value: String, reportUnit: String)
 
-  case class ParsedResults(functionName: String, errors: Seq[LogErrorMessage], metrics: Seq[Metric], logMessages: Seq[LogMessage], report: Seq[Report])
+  case class ParsedResults(functionName: String, errors: Seq[LogErrorMessage], metaspaceErrors: Seq[LogErrorMessage], timeoutError: Seq[TimeoutError], metrics: Seq[Metric], logMessages: Seq[LogMessage], report: Seq[Report])
+
+  case class TimeoutError(functionName: String, message: String, time: String, units: String)
 }
 
 object ReportTypes extends Enumeration {
