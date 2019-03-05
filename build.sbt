@@ -5,18 +5,21 @@ lazy val root = (project in file("."))
 
     name := "userverless-overwatch",
 
-    version := "0.3.0",
+    version := "0.4.0",
 
     scalaVersion := "2.12.8",
 
     libraryDependencies ++= {
       val awsSdkVersion = "1.11.510"
+      val awsSdkVersion2 = "2.5.1"
       Seq(
-        "io.onema"                  % "userverless-core_2.12"      % "0.3.0",
+        "io.onema"                  % "userverless-core_2.12"      % "0.4.0-SNAPSHOT",
         "com.amazonaws"             % "aws-java-sdk-logs"          % awsSdkVersion,
         "com.amazonaws"             % "aws-java-sdk-lambda"        % awsSdkVersion,
-        "com.amazonaws"             % "aws-java-sdk-cloudwatch"    % awsSdkVersion,
-        "com.amazonaws"             % "aws-java-sdk-sns"           % awsSdkVersion,
+        "software.amazon.awssdk"    % "sns"                        % awsSdkVersion2,
+        "org.scala-lang.modules"    %% "scala-async"               % "0.9.7",
+        "org.scala-lang.modules"    %% "scala-java8-compat"        % "0.9.0",
+        
 
         // Logging
         "com.typesafe.scala-logging"% "scala-logging_2.12"        % "3.7.2",
@@ -41,3 +44,7 @@ scalacOptions ++= Seq(
   "-feature",
   "-Xfatal-warnings")
 
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case x => MergeStrategy.first
+}

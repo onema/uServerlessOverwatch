@@ -14,11 +14,15 @@ package io.onema.userverless.overwatch.logs
 
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.events.CloudWatchLogsEvent
-import com.amazonaws.services.sns.AmazonSNSClientBuilder
 import io.onema.userverless.configuration.lambda.EnvLambdaConfiguration
 import io.onema.userverless.function.LambdaHandler
 import io.onema.userverless.monitoring.LogMetrics._
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
+import software.amazon.awssdk.services.sns.SnsAsyncClient
+import software.amazon.awssdk.services.sns.model.PublishResponse
 
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class ParserFunction extends LambdaHandler[CloudWatchLogsEvent, Unit] with EnvLambdaConfiguration {
 
@@ -27,7 +31,8 @@ class ParserFunction extends LambdaHandler[CloudWatchLogsEvent, Unit] with EnvLa
   private val snsNotificationTopic = getValue("/sns/notification/topic")
   private val snsLogTopic = getValue("/sns/log/topic")
   private val snsMetricTopic = getValue("/sns/metric/topic")
-  private val reporter = new Reporter(AmazonSNSClientBuilder.defaultClient(), snsErrorTopic, snsNotificationTopic, snsLogTopic, snsMetricTopic)
+  private val snsClient = SnsAsyncClient.builder().httpClientBuilder(NettyNioAsyncHttpClient.builder()).build()
+  private val reporter = new Reporter(snsClient, snsErrorTopic, snsNotificationTopic, snsLogTopic, snsMetricTopic)
 
   //--- Methods ---
   override def execute(event: CloudWatchLogsEvent, context: Context): Unit = {
@@ -36,34 +41,9 @@ class ParserFunction extends LambdaHandler[CloudWatchLogsEvent, Unit] with EnvLa
       ParserLogic.parse(base64Event)
     }
 
-    time("MetricsReport") {
-      log.debug(s"Submitting ${parsedResults.metrics.length} metrics")
-      reporter.metric(parsedResults.metrics)
-    }
-
-    time("ErrorReport") {
-      log.debug(s"Submitting ${parsedResults.errors.length} errors")
-      parsedResults.errors.foreach(reporter.error)
-    }
-
-    time("MetaspaceErrorReport") {
-      log.debug(s"Submitting ${parsedResults.metaspaceErrors.length} Metaspace errors")
-      parsedResults.metaspaceErrors.foreach(reporter.error)
-    }
-
-    time("TimeOutErrorReport") {
-      log.debug(s"Submitting ${parsedResults.timeoutError.length} timeout error")
-      parsedResults.timeoutError.foreach(reporter.timeout)
-    }
-
-    time("NotificationsReport") {
-      log.debug(s"Submitting ${parsedResults.report.length} reports")
-      parsedResults.report.foreach(reporter.report(_, parsedResults.functionName))
-    }
-
-    time("LogReport") {
-      log.debug(s"Submitting ${parsedResults.logMessages.length} logs")
-      reporter.log(parsedResults.logMessages)
+    time("PublishResults") {
+      val future: Future[Seq[PublishResponse]] = reporter.publishResultsAsync(parsedResults)
+      Await.ready(future, 10.seconds)
     }
   }
 }
