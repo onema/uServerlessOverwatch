@@ -90,7 +90,7 @@ class Reporter(val snsClient: AmazonSNSAsync, val errorTopic: Option[String], va
       Some(s"""The function "$functionName" has run out of memory""")
     } else if(memoryPercent > 60) {
       log.debug("Memory consumption over 60%")
-      Some(s"""The function "$functionName" memory usage is at $memoryPercent%""")
+      Some(Notification(functionName, s"""The function "$functionName" memory usage is at $memoryPercent%""").asJson)
     } else {
       None
     }
@@ -99,7 +99,7 @@ class Reporter(val snsClient: AmazonSNSAsync, val errorTopic: Option[String], va
 
   def timeout(error: TimeoutError): Option[Future[PublishResult]] = {
     log.debug(s"Time out error ${error.message}")
-    notification(s"""The fucntion "${error.functionName}" ${error.message} """)
+    notification(Notification(error.functionName, s"""The fucntion "${error.functionName}" ${error.message} """).asJson)
   }
 
   private def logErrors(future: Future[PublishResult]): Future[PublishResult] = {
@@ -121,4 +121,6 @@ object Reporter {
       }
     }
   }
+
+  case class Notification(functionName: String, message: String)
 }
