@@ -14,12 +14,11 @@ package io.onema.userverless.overwatch.logs
 
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.events.CloudWatchLogsEvent
+import com.amazonaws.services.sns.AmazonSNSAsyncClientBuilder
+import com.amazonaws.services.sns.model.PublishResult
 import io.onema.userverless.configuration.lambda.EnvLambdaConfiguration
 import io.onema.userverless.function.LambdaHandler
 import io.onema.userverless.monitoring.LogMetrics._
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
-import software.amazon.awssdk.services.sns.SnsAsyncClient
-import software.amazon.awssdk.services.sns.model.PublishResponse
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -31,7 +30,7 @@ class ParserFunction extends LambdaHandler[CloudWatchLogsEvent, Unit] with EnvLa
   private val snsNotificationTopic = getValue("/sns/notification/topic")
   private val snsLogTopic = getValue("/sns/log/topic")
   private val snsMetricTopic = getValue("/sns/metric/topic")
-  private val snsClient = SnsAsyncClient.builder().httpClientBuilder(NettyNioAsyncHttpClient.builder()).build()
+  private val snsClient = AmazonSNSAsyncClientBuilder.defaultClient()
   private val reporter = new Reporter(snsClient, snsErrorTopic, snsNotificationTopic, snsLogTopic, snsMetricTopic)
 
   //--- Methods ---
@@ -42,7 +41,7 @@ class ParserFunction extends LambdaHandler[CloudWatchLogsEvent, Unit] with EnvLa
     }
 
     time("PublishResults") {
-      val future: Future[Seq[PublishResponse]] = reporter.publishResultsAsync(parsedResults)
+      val future: Future[Seq[PublishResult]] = reporter.publishResultsAsync(parsedResults)
       Await.ready(future, 10.seconds)
     }
   }
