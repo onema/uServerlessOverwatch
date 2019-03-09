@@ -16,9 +16,8 @@ lazy val root = (project in file("."))
         "io.onema"                  % "userverless-core_2.12"      % "0.4.0-SNAPSHOT",
         "com.amazonaws"             % "aws-java-sdk-logs"          % awsSdkVersion,
         "com.amazonaws"             % "aws-java-sdk-lambda"        % awsSdkVersion,
-        "software.amazon.awssdk"    % "sns"                        % awsSdkVersion2,
+        "com.amazonaws"             % "aws-java-sdk-sns"           % awsSdkVersion,
         "org.scala-lang.modules"    %% "scala-async"               % "0.9.7",
-        "org.scala-lang.modules"    %% "scala-java8-compat"        % "0.9.0",
         
 
         // Logging
