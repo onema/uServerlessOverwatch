@@ -1,9 +1,3 @@
-import com.amazonaws.services.logs.AWSLogs
-import io.onema.userverless.events.CloudTrailCloudWatchEvent.CloudWatchLogEvent
-import io.onema.userverless.overwatch.registration.{LogRegistrationFunction, LogRegistrationLogic}
-import org.scalamock.scalatest.MockFactory
-import org.scalatest.{FlatSpec, Matchers}
-
 /**
   * This file is part of the ONEMA userverless-overwatch Package.
   * For the full copyright and license information,
@@ -14,8 +8,15 @@ import org.scalatest.{FlatSpec, Matchers}
   *
   * @author Juan Manuel Torres <software@onema.io>
   */
+import com.amazonaws.services.logs.AWSLogs
+import io.onema.userverless.events.CloudTrailCloudWatchEvent.CloudWatchLogEvent
+import io.onema.userverless.overwatch.registration.{LogRegistrationFunction, LogRegistrationLogic}
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class LogRegistrationTest extends FlatSpec with Matchers with MockFactory {
+
+class LogRegistrationTest extends AnyFlatSpec with Matchers with MockFactory {
   "A functionArn LogRegistrationFunction" should "decode payload" in {
     // Arrange
     class LRFTest extends LogRegistrationFunction {

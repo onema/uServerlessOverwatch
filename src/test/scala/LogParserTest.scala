@@ -13,10 +13,11 @@ import io.onema.json.Extensions._
 import io.onema.userverless.model.{Log, Metric}
 import io.onema.userverless.overwatch.logs.ParserLogic
 import io.onema.userverless.overwatch.logs.ParserLogic._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 
-class LogParserTest extends FlatSpec with Matchers {
+class LogParserTest extends AnyFlatSpec with Matchers {
 
   val errorPrefix = "*** ERROR :"
   val metricPrefix = "*** METRIC :"

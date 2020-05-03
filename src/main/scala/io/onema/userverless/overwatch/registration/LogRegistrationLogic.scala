@@ -27,7 +27,7 @@ class LogRegistrationLogic(val logClient: AWSLogs, val logGroupPrefix: String) {
 
     // Ignore the destination functionArn itself to avoid invocation loops and logs that do not use the configured prefix
     if(logGroup == s"$logGroupPrefix/$destinationFunc" || !logGroup.startsWith(logGroupPrefix) || logGroup.startsWith(s"/aws/lambda/overwatch") || !logGroup.contains(stageName)) {
-      log.info(s"""Ignoring the destination functionArn $destinationFuncArn.""")
+      log.info(s"Ignoring the destination functionArn $destinationFuncArn.")
     } else {
       updateSubscriptionFilter(logGroup, destinationFuncArn)
     }

@@ -7,26 +7,27 @@ lazy val root = (project in file("."))
 
     version := "0.4.1",
 
-    scalaVersion := "2.12.8",
+    scalaVersion := "2.13.1",
 
     libraryDependencies ++= {
       val awsSdkVersion = "1.11.510"
       val awsSdkVersion2 = "2.5.1"
       Seq(
-        "io.onema"                  % "userverless-core_2.12"      % "0.4.0",
-        "com.amazonaws"             % "aws-java-sdk-logs"          % awsSdkVersion,
-        "com.amazonaws"             % "aws-java-sdk-lambda"        % awsSdkVersion,
-        "com.amazonaws"             % "aws-java-sdk-sns"           % awsSdkVersion,
-        "org.scala-lang.modules"    %% "scala-async"               % "0.9.7",
+        "io.onema"                  %% "userverless-core"         % "0.4.1",
+        "com.amazonaws"             % "aws-java-sdk-logs"         % awsSdkVersion,
+        "com.amazonaws"             % "aws-java-sdk-lambda"       % awsSdkVersion,
+        "com.amazonaws"             % "aws-java-sdk-sns"          % awsSdkVersion,
+        "org.scala-lang.modules"    %% "scala-async"              % "0.10.0",
         
 
         // Logging
-        "com.typesafe.scala-logging"% "scala-logging_2.12"        % "3.7.2",
-        "ch.qos.logback"            % "logback-classic"           % "1.1.7",
+        "com.typesafe.scala-logging" %% "scala-logging"           % "3.9.2",
+        "ch.qos.logback"             %  "logback-classic"         % "1.1.7",
 
         // Testing
-        "org.scalatest"             %% "scalatest"                          % "3.0.4"   % Test,
-        "org.scalamock"             % "scalamock-scalatest-support_2.12"    % "3.6.0"   % Test
+        "org.scalatest"             %% "scalatest"                % "3.1.1"   % Test,
+        "org.scalamock"             %% "scalamock"                % "4.4.0"   % Test
+
       )
     }
   )

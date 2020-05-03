@@ -40,7 +40,6 @@ class LogRegistrationFunction extends LambdaHandler[CloudWatchLogEvent, Unit] wi
         val logGroup = rp.logGroupName
         logic.updateRetentionPolicy(logGroup, retentionTime)
 
-        // Get own self log group to avoid self registration
         val accountId = context.accountId.getOrElse("")
         destinationFunc.foreach(func => logic.subscribe(func, accountId, logGroup, stageName, region))
       case None =>

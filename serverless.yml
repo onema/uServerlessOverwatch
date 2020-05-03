@@ -12,7 +12,7 @@ service: overwatch
 
 provider:
   name: aws
-  runtime: java8
+  runtime: java11
   profile: ${opt:profile, 'default'}
   timeout: 30
   versionFunctions: false
